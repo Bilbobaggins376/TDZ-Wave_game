@@ -111,10 +111,14 @@ roster (editable):
 - **Boss** — one per boss wave (see §9). Turret-priority: destroys placed
   turrets first, then falls back to Objective-priority once no turrets
   remain (same fallback rule as Breaker). In addition, every boss has a
-  **secondary attack** — a ranged/special ability that can strike the player
-  directly regardless of the boss's current movement target. Each of the 5
-  bosses is a distinct design (see §9) with its own secondary attack; the
-  turret-first, then-objective pattern is the one thing all 5 share.
+  **secondary attack** — a circular area attack centered on the boss
+  (radius varies per boss). It only triggers when the player is both inside
+  that radius and has a clear line of sight to the boss (placed turrets can
+  block the line; nothing else currently can, since there's no separate
+  terrain/obstacle system). Fires on a cooldown, not continuously. Each of
+  the 5 bosses is a distinct design (see §9) with its own radius, damage,
+  and cooldown; the turret-first-then-objective pattern and the
+  proximity-plus-line-of-sight gate are the two things all 5 share.
 
 All zombies still deal contact damage to the objective if they reach it,
 regardless of type. Zombie stats scale up as waves progress (see §9).
@@ -163,17 +167,44 @@ regardless of type. Zombie stats scale up as waves progress (see §9).
   next page load starts a new run.
 - Single save slot — no multiple save profiles for now.
 
-## 13. Out of scope (for now)
+## 13. Deployment target
+
+**itch.io**, played in-browser (HTML5 embed) — not a downloadable native
+build. This has concrete architectural consequences:
+
+- itch.io never serves a game from a domain root; it hosts each upload under
+  its own path. Any build tooling must emit **relative** asset paths, not
+  absolute ones (`/assets/...`), or every asset 404s once uploaded.
+  `vite.config.js` sets `base: './'` for exactly this reason — verified by
+  building and serving `dist/` from a nested path
+  (`scripts/verify-itch-build.mjs`); do not remove that config.
+- Static output only — everything ships as files in `dist/`, no server-side
+  code. This is already true of the whole architecture (no backend planned),
+  so nothing else changes here.
+- **Upload checklist**: `npm run build` → zip the *contents* of `dist/`
+  (`index.html` and `assets/` at the zip root, not inside a wrapping folder)
+  → upload as a new file on the itch.io project page → mark it "This file
+  will be played in the browser" → set kind to "HTML".
+- **Known caveat**: itch.io embeds the game in an iframe served from its own
+  subdomain, not the itch.io page's own origin. `localStorage` (used for
+  Persistence, §12) works there in most browsers, but some browsers restrict
+  or clear storage for iframed content more aggressively than for top-level
+  pages (e.g. Safari's tracking prevention). Resume-after-refresh should
+  degrade gracefully — start a fresh run rather than error — if a saved
+  state can't be read back, rather than assuming storage is always
+  reliable.
+- No mobile/touch requirement (see §14) means no itch.io mobile-friendly
+  toggle is needed; assume desktop browser + keyboard/mouse.
+
+## 14. Out of scope (for now)
 
 - Multiplayer/co-op.
 - Meta-progression between runs (persistent unlocks across sessions).
 - Mobile/touch controls.
 
-## 14. Open questions
+## 15. Open questions
 
-- The specific stats and secondary-attack design for each of the 5 distinct
-  bosses (wave 5, 10, 15, 20, 25) — only the shared turret-priority pattern
-  and "difficulty increases per boss" are decided so far.
-- Whether the secondary attack is purely ranged (a projectile/AoE that can
-  hit the player from a distance) or requires some proximity — mechanics
-  TBD.
+- The specific stats for each of the 5 distinct bosses — HP, movement speed,
+  and each one's secondary-attack radius/damage/cooldown (wave 5, 10, 15,
+  20, 25) — only the shared turret-priority-then-objective pattern and
+  proximity-plus-line-of-sight secondary attack gate are decided so far.

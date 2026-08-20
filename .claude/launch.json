@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "itch-sim",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["scripts/verify-itch-build.mjs"],
+      "port": 8321
     }
   ]
 }

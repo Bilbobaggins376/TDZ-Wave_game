@@ -25,12 +25,26 @@ decisions change or open questions get resolved.
 - [index.html](index.html) — entry HTML, loads `src/main.js`
 - [src/main.js](src/main.js) — game loop (update/draw), currently just a wave counter
 - [src/style.css](src/style.css) — full-window canvas styling
+- [vite.config.js](vite.config.js) — sets `base: './'`; required for the build to work when hosted off the domain root (see Deployment below) — don't remove it
+- [scripts/verify-itch-build.mjs](scripts/verify-itch-build.mjs) — serves `dist/` from a nested path to catch absolute-path asset regressions before they'd break on itch.io
 
 ## Commands
 
 - `npm run dev` — start the Vite dev server
 - `npm run build` — production build
 - `npm run preview` — preview the production build
+- `node scripts/verify-itch-build.mjs` (after `npm run build`) — sanity-check the build for itch.io hosting; open the printed URL and confirm no 404s under `/nested/assets/`
+
+## Deployment
+
+Target platform is **itch.io** (HTML5, played in-browser). itch.io never hosts
+a game at a domain root, so absolute asset paths (Vite's default) 404 there —
+`vite.config.js` sets `base: './'` to keep every reference relative. To
+publish: `npm run build`, zip the *contents* of `dist/` (not the folder
+itself), upload as a new file on the itch.io project page, mark it "This file
+will be played in the browser" and kind "HTML". See `REQUIREMENTS.md` §13 for
+the full checklist and known caveats (e.g. localStorage inside itch.io's
+iframe).
 
 ## Conventions
 
