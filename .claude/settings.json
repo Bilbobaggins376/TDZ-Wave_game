@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/check-syntax.js",
+            "shell": "bash",
+            "statusMessage": "Checking JS syntax..."
+          },
+          {
+            "type": "agent",
+            "prompt": "A Write, Edit, or Bash tool call just completed in this project. Tool call details (JSON): $ARGUMENTS\n\nCheck whether it did what it was supposed to do: no syntax errors, no obviously broken output, no command that failed unexpectedly, and the change matches what a normal call of that type should produce. If it looks fine, say so briefly and let it proceed. If something is broken or off, explain exactly what's wrong.",
+            "timeout": 60,
+            "statusMessage": "Verifying last action..."
+          }
+        ]
+      }
+    ]
+  }
+}

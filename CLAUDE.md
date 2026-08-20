@@ -14,6 +14,12 @@ window, and a game loop with a placeholder wave counter. No actual gameplay
 - Bundler/dev server: Vite
 - Rendering: HTML5 Canvas 2D
 
+## Design
+
+Game requirements/design decisions live in [REQUIREMENTS.md](REQUIREMENTS.md)
+— check it before implementing gameplay features, and update it when design
+decisions change or open questions get resolved.
+
 ## Structure
 
 - [index.html](index.html) — entry HTML, loads `src/main.js`
