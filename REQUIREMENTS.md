@@ -10,6 +10,10 @@ toward a central **objective** with hit points. The player directly fights
 zombies with equipped weapons and can also place a limited number of
 turrets/traps. If the objective's HP reaches 0, the game ends.
 
+The play area is a **fixed viewport** — the whole map is sized to the browser
+window and always fully visible. No camera, no scrolling/panning; this is
+true for the entire game, not just an early simplification.
+
 ## 2. Objective
 
 - A fixed structure/point on the map with a visible HP bar.
@@ -22,28 +26,48 @@ turrets/traps. If the objective's HP reaches 0, the game ends.
 
 ## 3. Player character
 
-- Moves freely around the map (top-down movement, 8-directional or analog).
+- Moves freely around the map — **WASD/arrow keys**, 8-directional.
+- Aims with the **mouse cursor**; the equipped weapon fires toward the
+  cursor position. **Automatic weapons hold-to-fire** (continue firing at
+  their fire rate for as long as the button is held); **non-automatic
+  weapons are click-per-shot** (one shot per click, regardless of how long
+  it's held). Which weapons are automatic is a per-weapon flag, see §4.
+- Switches equipped weapon with **number keys** (1, 2, 3…), one key per
+  owned weapon in purchase order.
 - Has their own HP, separate from the objective. On death, the player
   **respawns** rather than ending the run — but loses a currency penalty each
   time they die. Penalty scales with the current wave: `10 × waveNumber`
   (wave 1 = 10, wave 2 = 20, … wave 25 = 250). Player death is never itself a
   loss condition; only the objective reaching 0 HP ends the run.
-- Directly attacks zombies with their currently equipped weapon.
-- Can place a limited number of turrets/traps (limit increases via upgrades).
+- Can place a limited number of turrets/traps within a build radius of their
+  *current position* (limit increases via upgrades) — see §5.
+- **Build Mode**: toggled with a dedicated key (**B**). Movement and aiming
+  still work while it's active, but left-click places the currently
+  selected turret type instead of firing the equipped weapon, and the
+  number keys select *which turret type* to place instead of switching
+  weapons. Right-click or **Esc** exits Build Mode without placing anything;
+  placing a turret does not exit it, so multiple turrets can be placed
+  without re-toggling. The build-radius ring (§10) is only ever drawn while
+  Build Mode is active — it's invisible during normal play.
 
 ## 4. Weapons
 
 - Player carries one equipped weapon at a time, switchable from an inventory
   of unlocked/purchased weapons.
 - Each weapon has: damage, fire rate, range, ammo/reload behavior (if any),
-  and a purchase cost.
+  a purchase cost, and an `automatic` flag (hold-to-fire vs. click-per-shot
+  — see §3).
 - Starting weapon is available for free at wave 1.
 - Weapons are bought with currency (see §7) — no fixed unlock progression.
 
 ## 5. Turrets / traps
 
-- Placed by the player at chosen map positions within a build radius of the
-  objective (exact radius TBD).
+- Placed while in **Build Mode** (§3) at chosen map positions within a build
+  radius **of the player's current position** — not a fixed zone around the
+  objective. The radius moves with the player, so defending a different
+  part of the map means walking there first. Default radius: **200px**, as
+  a single tunable constant — adjust once it's visible in-game and screen
+  sizes are known; not derived from anything else.
 - Multiple distinct turret types are selectable at placement time, each with
   its own cost, stats, and behavior — not just one generic turret. Proposed
   starter roster (editable):
@@ -148,6 +172,11 @@ regardless of type. Zombie stats scale up as waves progress (see §9).
 - Weapon/turret selection UI, with cost and stats shown before purchase —
   locked turret types (Frost, Flame, Machine Gun before their unlock wave)
   shown but disabled, with the unlock wave indicated.
+- Equipped-weapon indicator showing its number-key hotkey (hidden while
+  Build Mode is active, replaced by the selected-turret-type indicator).
+- Build-radius ring around the player, and a placement preview (ghost
+  turret at the cursor, styled valid/invalid) — both drawn **only while
+  Build Mode is active** (§3), never during normal play.
 - Boss-wave indicator/warning before a boss wave starts.
 
 ## 11. Win / lose conditions

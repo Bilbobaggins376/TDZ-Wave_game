@@ -4,9 +4,12 @@ A tower-defense zombie wave-survival game built for the web (JS/TS + HTML5 Canva
 
 ## Status
 
-Minimal starter scaffold in place: a Vite dev server, a canvas that fills the
-window, and a game loop with a placeholder wave counter. No actual gameplay
-(zombies, towers, spawning) exists yet.
+First playable slice: WASD movement, mouse-aim + click-to-fire (one starting
+weapon), a Shambler zombie type that walks toward the objective and does
+periodic contact damage, an objective + player with HP bars, and a basic
+endless wave loop (spawn count grows per wave, zombies get tougher). No
+shop/currency/turrets/Build Mode/other zombie types/bosses/persistence yet —
+those are designed in REQUIREMENTS.md and the architecture doc but not built.
 
 ## Tech stack
 
@@ -23,7 +26,15 @@ decisions change or open questions get resolved.
 ## Structure
 
 - [index.html](index.html) — entry HTML, loads `src/main.js`
-- [src/main.js](src/main.js) — game loop (update/draw), currently just a wave counter
+- [src/main.js](src/main.js) — thin entry point, creates and starts `Game`
+- [src/core/Game.js](src/core/Game.js) — frame loop, per-frame system order, reset/game-over/restart
+- [src/core/InputManager.js](src/core/InputManager.js) — keyboard/mouse state, edge-triggered click detection
+- [src/core/Renderer.js](src/core/Renderer.js) — draws entities + HP bars + game-over overlay
+- [src/entities/](src/entities) — `Player.js`, `Objective.js`, `Zombie.js`, `Projectile.js`
+- [src/systems/WaveManager.js](src/systems/WaveManager.js) — spawn timing/count per wave (Shambler only so far)
+- [src/systems/CollisionSystem.js](src/systems/CollisionSystem.js) — projectile↔zombie, zombie↔objective, zombie↔player
+- [src/data/zombieTypes.js](src/data/zombieTypes.js) — zombie type stats (just `shambler` right now)
+- [src/ui/HUD.js](src/ui/HUD.js) — wave-number overlay text
 - [src/style.css](src/style.css) — full-window canvas styling
 - [vite.config.js](vite.config.js) — sets `base: './'`; required for the build to work when hosted off the domain root (see Deployment below) — don't remove it
 - [scripts/verify-itch-build.mjs](scripts/verify-itch-build.mjs) — serves `dist/` from a nested path to catch absolute-path asset regressions before they'd break on itch.io
