@@ -415,6 +415,7 @@ export class Game {
   draw() {
     this.renderer.render({
       player: this.player,
+      aimAngle: Math.atan2(this.input.mouseY - this.player.y, this.input.mouseX - this.player.x),
       objective: this.objective,
       zombies: this.zombies,
       projectiles: this.projectiles,

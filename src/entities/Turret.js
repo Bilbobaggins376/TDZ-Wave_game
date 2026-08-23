@@ -11,6 +11,7 @@ export class Turret {
     this.hp = this.maxHp;
     this.level = 1;
     this.fireCooldown = 0;
+    this.aimAngle = -Math.PI / 2;
     this.isTurret = true;
     this.isStructure = true;
   }
@@ -91,11 +92,13 @@ export class Turret {
       return;
     }
 
-    this.fireCooldown -= dt;
-    if (this.fireCooldown > 0) return;
-
+    // Track the target every frame, not just when firing, so the barrel keeps
+    // following a zombie between shots.
     const target = this.nearestZombieInRange(zombies, stats.range);
-    if (!target) return;
+    if (target) this.aimAngle = Math.atan2(target.y - this.y, target.x - this.x);
+
+    this.fireCooldown -= dt;
+    if (this.fireCooldown > 0 || !target) return;
 
     const dx = target.x - this.x;
     const dy = target.y - this.y;

@@ -19,6 +19,7 @@ export class Zombie {
     this.contactCooldown = 0;
     this.target = null;
     this.effects = {};
+    this.angle = 0;
   }
 
   // §5 stacking rule: one instance per effect category, strongest wins — a
@@ -88,6 +89,7 @@ export class Zombie {
     const dy = this.target.y - this.y;
     const dist = Math.hypot(dx, dy);
     if (dist > 0.001) {
+      this.angle = Math.atan2(dy, dx);
       this.x += (dx / dist) * speed * dt;
       this.y += (dy / dist) * speed * dt;
     }

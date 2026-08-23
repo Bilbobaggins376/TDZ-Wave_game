@@ -64,6 +64,7 @@ decisions change or open questions get resolved.
 - [src/core/Game.js](src/core/Game.js) — frame loop, per-frame system order, reset/game-over/restart
 - [src/core/InputManager.js](src/core/InputManager.js) — keyboard/mouse state, edge-triggered click detection
 - [src/core/Renderer.js](src/core/Renderer.js) — draws entities + HP bars + game-over overlay
+- [src/render/Sprites.js](src/render/Sprites.js) — procedural sprites drawn once into cached offscreen canvases; no image files, so the itch.io bundle stays self-contained
 - [src/entities/](src/entities) — `Player.js`, `Objective.js`, `Zombie.js`, `Boss.js`, `Turret.js`, `Projectile.js`
 - [src/systems/LineOfSight.js](src/systems/LineOfSight.js) — segment/circle test; turrets block boss line of sight
 - [src/systems/Economy.js](src/systems/Economy.js) — currency balance, kill payouts, wave-scaled death penalty
