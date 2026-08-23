@@ -22,8 +22,10 @@ export class Projectile {
 
   update(dt) {
     // Previous position is kept so collision can sweep the travelled segment.
-    // Fast rounds (the sniper moves ~18px/frame) would otherwise tunnel
-    // straight through a zombie whose hit window is only ~17px wide.
+    // Endpoint-only tests miss a target that falls between two sampled
+    // positions, which needs (speed*dt)/2 > hit radius. The sniper at 1100px/s
+    // crosses that line at 30fps and below (~41% miss rate at the 0.05 dt
+    // clamp), so slow frames would silently eat shots without this.
     this.prevX = this.x;
     this.prevY = this.y;
     this.x += this.vx * dt;
