@@ -36,8 +36,14 @@ export class Zombie {
         delete this.effects[kind];
         continue;
       }
-      if (kind === "dot") this.hp -= effect.strength * dt;
+      if (kind === "dot") this.takeDamage(effect.strength * dt);
     }
+  }
+
+  // Single entry point for damage so subclasses can react to it — Boss
+  // overrides this to reset its regeneration timer.
+  takeDamage(amount) {
+    this.hp -= amount;
   }
 
   currentSpeed() {

@@ -47,6 +47,9 @@ export class Game {
     this.buildErrorTimer = 0;
     this.shopMessage = null;
     this.shopLayout = null;
+    this.phaseLabel = null;
+    this.phaseLabelTimer = 0;
+    this.detonationFlash = null;
   }
 
   get gameOver() {
@@ -81,6 +84,11 @@ export class Game {
     }
 
     if (this.buildErrorTimer > 0) this.buildErrorTimer -= dt;
+    if (this.phaseLabelTimer > 0) this.phaseLabelTimer -= dt;
+    if (this.detonationFlash) {
+      this.detonationFlash.timer -= dt;
+      if (this.detonationFlash.timer <= 0) this.detonationFlash = null;
+    }
 
     this.handleBuildModeToggle();
     this.updatePlayer(dt);
@@ -90,7 +98,10 @@ export class Game {
       objective: this.objective,
       turrets: this.turrets,
     };
-    for (const zombie of this.zombies) zombie.update(dt, world);
+    for (const zombie of this.zombies) {
+      if (zombie.isBossEntity) zombie.update(dt, world, this.bossHooks());
+      else zombie.update(dt, world);
+    }
     for (const turret of this.turrets) {
       turret.update(
         dt,
@@ -300,6 +311,60 @@ export class Game {
     );
   }
 
+  bossHooks() {
+    return {
+      onDetonate: (boss) => this.resolveDetonation(boss),
+      onSpawnAdds: (count) => this.zombies.push(...this.waveManager.makeAdds(count)),
+      onPhaseChange: (label) => {
+        this.phaseLabel = label;
+        this.phaseLabelTimer = 2.5;
+      },
+    };
+  }
+
+  // The area attack hits the player only if it can still see and reach them
+  // at detonation time (§8 — stepping out of the ring during the windup is
+  // meant to work), and always hits turrets caught inside it.
+  resolveDetonation(boss) {
+    const { radius, damage } = boss.type.secondaryAttack;
+
+    if (this.player.hp > 0 && boss.inAttackRange(this.player) && boss.canSee(this.player, this.turrets)) {
+      this.player.hp = Math.max(0, this.player.hp - damage);
+    }
+
+    const destroyed = [];
+    for (const turret of this.turrets) {
+      if (Math.hypot(turret.x - boss.x, turret.y - boss.y) > radius) continue;
+      turret.hp -= damage;
+      if (turret.hp <= 0) destroyed.push(turret);
+    }
+
+    if (boss.activeMechanic() === "chain") this.resolveChain(boss, destroyed);
+    this.turrets = this.turrets.filter((t) => t.hp > 0);
+    this.detonationFlash = { x: boss.x, y: boss.y, radius, timer: 0.25 };
+  }
+
+  // §9.1 wave 10: each turret killed by the blast explodes into its
+  // neighbours, so a tight cluster cascades and a spread one doesn't.
+  resolveChain(boss, initiallyDestroyed) {
+    const queue = [...initiallyDestroyed];
+    const exploded = new Set(queue.map((t) => t.id));
+
+    while (queue.length > 0) {
+      const source = queue.shift();
+      for (const turret of this.turrets) {
+        if (exploded.has(turret.id) || turret.hp <= 0) continue;
+        if (Math.hypot(turret.x - source.x, turret.y - source.y) > boss.type.chainRadius) continue;
+
+        turret.hp -= boss.type.chainDamage;
+        if (turret.hp <= 0) {
+          exploded.add(turret.id);
+          queue.push(turret);
+        }
+      }
+    }
+  }
+
   // §10.1: a turret is "threatened" while any turret-priority zombie is
   // actively targeting it, so the cue can never fire on a stale target.
   threatenedTurretIds() {
@@ -318,6 +383,7 @@ export class Game {
       projectiles: this.projectiles,
       turrets: this.turrets,
       threatenedTurretIds: this.threatenedTurretIds(),
+      detonationFlash: this.detonationFlash,
       gameOver: this.state === "gameover",
       victory: this.state === "victory",
       buildPreview: this.player.buildMode
@@ -346,6 +412,8 @@ export class Game {
       weapon: this.player.weapon,
       ownedWeaponIds: this.player.ownedWeaponIds,
       buildError: this.buildErrorTimer > 0 ? this.lastBuildError : null,
+      boss: this.zombies.find((z) => z.isBossEntity) ?? null,
+      phaseLabel: this.phaseLabelTimer > 0 ? this.phaseLabel : null,
     });
   }
 

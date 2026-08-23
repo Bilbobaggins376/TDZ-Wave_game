@@ -200,13 +200,25 @@ roster (editable):
   turrets first, then falls back to Objective-priority once no turrets
   remain (same fallback rule as Breaker). In addition, every boss has a
   **secondary attack** — a circular area attack centered on the boss
-  (radius varies per boss). It only triggers when the player is both inside
-  that radius and has a clear line of sight to the boss (placed turrets can
-  block the line; nothing else currently can, since there's no separate
-  terrain/obstacle system). Fires on a cooldown, not continuously. Each of
-  the 5 bosses is a distinct design (see §9) with its own radius, damage,
-  and cooldown; the turret-first-then-objective pattern and the
-  proximity-plus-line-of-sight gate are the two things all 5 share.
+  (radius varies per boss), which:
+  - **Triggers** only when the player is inside the radius *and* has clear
+    line of sight to the boss. Placed turrets block the line; nothing else
+    currently can, since there's no terrain/obstacle system. Turrets
+    therefore double as cover, which reinforces pillar 1 (§1.1).
+  - **Winds up before firing**, showing an expanding warning ring for the
+    boss's windup duration. The radius is re-checked at detonation, so
+    walking out of the ring during the windup avoids the hit entirely —
+    this is the skill the wave-5 boss exists to teach.
+  - **Damages placed turrets as well as the player**, not the player alone.
+    Turrets being destructible by the area attack is what makes the wave-10
+    chain mechanic (§9.1) possible and keeps every later boss threatening
+    to a defense the player has walked away from.
+  - Fires on a cooldown, not continuously.
+
+  Each of the 5 bosses is a distinct design (see §9.1) with its own radius,
+  damage, cooldown, and signature mechanic; the turret-first-then-objective
+  pattern and the proximity-plus-line-of-sight-plus-windup gate are what all
+  5 share.
 
 All zombies still deal contact damage to the objective if they reach it,
 regardless of type. Zombie stats scale up as waves progress (see §9).
@@ -271,13 +283,13 @@ numbers realizing each role are still to be tuned (§15), but *which system
 each boss stresses* is fixed, and a boss whose stats stop delivering its
 assigned pressure gets re-tuned until it does, rather than reassigned:
 
-| Wave | Stresses | Design |
+| Wave | Stresses | Signature mechanic |
 |---|---|---|
-| 5 | Learning the pattern | Modest stats; the fight that *teaches* turret-first-then-objective and the secondary attack. Must be survivable by a player who has only Cannon. |
-| 10 | Turret spacing | Large secondary-attack radius, punishing tightly clustered turrets and rewarding spread placement. |
-| 15 | Positioning | High movement speed; punishes the player for straying far from the objective, since it reaches it quickly once turrets fall. |
-| 20 | Sustained DPS | High HP — a damage check that rewards having invested in Machine Gun (unlocked wave 16) and weapon upgrades. |
-| 25 | All of it | Combines the earlier pressures as a finale; the only fight that assumes the player has the full turret roster. |
+| 5 | Learning the pattern | **Telegraphed Slam.** Long windup, generous cooldown, low damage. Teaches all three things later bosses assume you know: bosses eat turrets first, a ring means danger, and you can walk out of it. Must be survivable with only Cannon. |
+| 10 | Turret spacing | **Chain Detonation.** When its area attack destroys a turret, that turret explodes and can chain to any turret within the chain radius. A tight cluster cascades and the whole line dies at once; spread placement breaks the chain. Clustering doesn't merely take damage — it turns the player's own defense into the weapon. |
+| 15 | Positioning | **Leap Advance.** Instead of walking between targets it periodically leaps across the map to its next turret target, so spread turrets no longer buy travel time. Still turret-priority; what kills you is being far from wherever it lands. |
+| 20 | Sustained DPS | **Regeneration.** Heals steadily after a short window with no damage taken, so chip damage can never out-pace it. This is what makes it a damage *check* rather than an HP *sponge*, and it's why Machine Gun unlocks four waves earlier (§5.1). |
+| 25 | All of it | **Phase Shifts + Adds.** Cycles the previous four mechanics as its HP drops — slam → chain → leap → regen — announcing each phase, and spawns Shambler/Stalker/Breaker adds so the horde and the boss have to be handled together. Assumes the full turret roster. |
 
 The shared elements (turret-priority then objective, proximity-plus-line-of-
 sight secondary attack) stay constant across all 5 per §8 — the *variety*

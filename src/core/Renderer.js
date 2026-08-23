@@ -6,7 +6,7 @@ export class Renderer {
     this.canvas = canvas;
   }
 
-  render({ player, objective, zombies, projectiles, turrets, threatenedTurretIds, buildPreview, gameOver, victory }) {
+  render({ player, objective, zombies, projectiles, turrets, threatenedTurretIds, buildPreview, detonationFlash, gameOver, victory }) {
     const { ctx, canvas } = this;
     ctx.fillStyle = "#111";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -19,6 +19,7 @@ export class Renderer {
     for (const projectile of projectiles) this.drawProjectile(projectile);
     this.drawPlayer(player);
 
+    if (detonationFlash) this.drawDetonationFlash(detonationFlash);
     this.drawThreatMarkers(player, turrets, threatenedTurretIds);
     if (buildPreview) this.drawBuildPreview(buildPreview);
 
@@ -144,12 +145,55 @@ export class Renderer {
     this.drawHpBar(player.x, player.y - player.radius - 12, 40, player.hp, player.maxHp, "#4ade80");
   }
 
+  // The windup ring is the whole tell: it fills toward the real blast radius
+  // so the player can read how long they have to leave it.
+  drawWindup(boss) {
+    const { ctx } = this;
+    const radius = boss.type.secondaryAttack.radius;
+    const progress = boss.windupProgress();
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(248, 113, 113, 0.55)";
+    ctx.setLineDash([6, 6]);
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(boss.x, boss.y, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+    ctx.fillStyle = "rgba(248, 113, 113, 0.18)";
+    ctx.beginPath();
+    ctx.arc(boss.x, boss.y, radius * progress, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  drawDetonationFlash({ x, y, radius, timer }) {
+    const { ctx } = this;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, timer / 0.25) * 0.5;
+    ctx.fillStyle = "#fca5a5";
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
   drawZombie(zombie) {
     const { ctx } = this;
+
+    if (zombie.isBossEntity && zombie.isWindingUp()) this.drawWindup(zombie);
+
     ctx.fillStyle = zombie.type.color;
     ctx.beginPath();
     ctx.arc(zombie.x, zombie.y, zombie.radius, 0, Math.PI * 2);
     ctx.fill();
+
+    if (zombie.isBossEntity) {
+      ctx.strokeStyle = "#fbbf24";
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
 
     if (zombie.effects.slow) {
       ctx.strokeStyle = "#67e8f9";

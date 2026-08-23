@@ -32,9 +32,15 @@ non-automatic, so it exercises the `automatic` click-per-shot rule) and
 tiered upgrades across player, per-turret-type, and objective categories.
 Clearing wave 25 now wins the run.
 
-No bosses or persistence yet — those are designed in REQUIREMENTS.md and the
-architecture doc but not built. **Wave 25 currently ends the run with no
-boss fight**, since bosses aren't implemented.
+All five bosses are in, one per boss wave, each with the signature mechanic
+from §9.1 — Lurcher (telegraphed slam), Detonator (chain detonation through
+clustered turrets), Vaulter (leaps between turret targets), Glutton
+(regenerates unless damage is sustained), Culmination (cycles all four as
+phases and spawns adds). They share the windup + line-of-sight area attack;
+placed turrets block line of sight, so they double as cover.
+
+Persistence is the remaining unbuilt piece — designed in REQUIREMENTS.md §12
+and the architecture doc, but not implemented.
 
 ## Tech stack
 
@@ -55,7 +61,8 @@ decisions change or open questions get resolved.
 - [src/core/Game.js](src/core/Game.js) — frame loop, per-frame system order, reset/game-over/restart
 - [src/core/InputManager.js](src/core/InputManager.js) — keyboard/mouse state, edge-triggered click detection
 - [src/core/Renderer.js](src/core/Renderer.js) — draws entities + HP bars + game-over overlay
-- [src/entities/](src/entities) — `Player.js`, `Objective.js`, `Zombie.js`, `Turret.js`, `Projectile.js`
+- [src/entities/](src/entities) — `Player.js`, `Objective.js`, `Zombie.js`, `Boss.js`, `Turret.js`, `Projectile.js`
+- [src/systems/LineOfSight.js](src/systems/LineOfSight.js) — segment/circle test; turrets block boss line of sight
 - [src/systems/Economy.js](src/systems/Economy.js) — currency balance, kill payouts, wave-scaled death penalty
 - [src/systems/UpgradeSystem.js](src/systems/UpgradeSystem.js) — purchased tiers, stat application, per-turret-type modifiers
 - [src/ui/ShopMenu.js](src/ui/ShopMenu.js) — intermission panel layout, hit-testing, and rendering

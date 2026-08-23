@@ -7,7 +7,7 @@ function touching(a, b) {
 }
 
 function applyProjectileHit(projectile, zombie, zombies, deadZombieIds) {
-  zombie.hp -= projectile.damage;
+  zombie.takeDamage(projectile.damage);
 
   if (projectile.effect === "slow") {
     zombie.applyEffect("slow", {
@@ -20,7 +20,7 @@ function applyProjectileHit(projectile, zombie, zombies, deadZombieIds) {
     for (const other of zombies) {
       if (other.id === zombie.id || deadZombieIds.has(other.id)) continue;
       if (distance(projectile, other) <= projectile.splashRadius) {
-        other.hp -= projectile.damage * 0.5;
+        other.takeDamage(projectile.damage * 0.5);
         if (other.hp <= 0) deadZombieIds.add(other.id);
       }
     }

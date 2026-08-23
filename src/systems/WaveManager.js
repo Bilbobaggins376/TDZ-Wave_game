@@ -1,9 +1,11 @@
 import { Zombie } from "../entities/Zombie.js";
-import { typesAvailableAtWave } from "../data/zombieTypes.js";
+import { Boss } from "../entities/Boss.js";
+import { typesAvailableAtWave, bossForWave } from "../data/zombieTypes.js";
 
 const SPAWN_INTERVAL = 0.5;
 
 export const MAX_WAVE = 25;
+export const BOSS_CADENCE = 5;
 
 export class WaveManager {
   constructor(canvasWidth, canvasHeight) {
@@ -14,8 +16,13 @@ export class WaveManager {
     this.toSpawn = this.spawnCountForWave();
   }
 
+  // §9: a boss wave replaces the normal spawn with a single boss.
+  isBossWave() {
+    return this.wave % BOSS_CADENCE === 0 && bossForWave(this.wave) !== null;
+  }
+
   spawnCountForWave() {
-    return 3 + this.wave * 2;
+    return this.isBossWave() ? 1 : 3 + this.wave * 2;
   }
 
   isFinalWave() {
@@ -65,6 +72,18 @@ export class WaveManager {
 
   makeZombie() {
     const { x, y } = this.spawnPosition();
+    if (this.isBossWave()) return new Boss(bossForWave(this.wave), x, y, this.wave);
     return new Zombie(this.pickType(), x, y, this.wave);
+  }
+
+  // Adds summoned mid-fight by the wave-25 boss, not part of the wave's own
+  // spawn budget.
+  makeAdds(count) {
+    const adds = [];
+    for (let i = 0; i < count; i++) {
+      const { x, y } = this.spawnPosition();
+      adds.push(new Zombie(this.pickType(), x, y, this.wave));
+    }
+    return adds;
   }
 }

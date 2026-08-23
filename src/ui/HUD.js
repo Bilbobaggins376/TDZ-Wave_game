@@ -11,6 +11,8 @@ export function drawHUD(ctx, {
   weapon,
   ownedWeaponIds,
   buildError,
+  boss,
+  phaseLabel,
 }) {
   ctx.save();
   ctx.textAlign = "left";
@@ -44,6 +46,8 @@ export function drawHUD(ctx, {
     ctx.fillText("B — build mode", 16, y + 4);
   }
 
+  if (boss) drawBossBar(ctx, boss, phaseLabel);
+
   if (buildError) {
     ctx.fillStyle = "#fca5a5";
     ctx.font = "14px sans-serif";
@@ -52,6 +56,32 @@ export function drawHUD(ctx, {
   }
 
   ctx.restore();
+}
+
+function drawBossBar(ctx, boss, phaseLabel) {
+  const width = Math.min(520, ctx.canvas.width - 120);
+  const x = (ctx.canvas.width - width) / 2;
+  const y = 24;
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#fbbf24";
+  ctx.font = "bold 16px sans-serif";
+  ctx.fillText(boss.type.label.toUpperCase(), ctx.canvas.width / 2, y - 6);
+
+  ctx.fillStyle = "#1f2937";
+  ctx.fillRect(x, y, width, 12);
+  ctx.fillStyle = "#dc2626";
+  ctx.fillRect(x, y, width * Math.max(0, boss.hp / boss.maxHp), 12);
+  ctx.strokeStyle = "#fbbf24";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(x + 0.5, y + 0.5, width - 1, 11);
+
+  if (phaseLabel) {
+    ctx.fillStyle = "#fcd34d";
+    ctx.font = "14px sans-serif";
+    ctx.fillText(phaseLabel, ctx.canvas.width / 2, y + 32);
+  }
+  ctx.textAlign = "left";
 }
 
 function drawBuildBar(ctx, { selectedTurretType, availableTurretTypes, currency }) {
