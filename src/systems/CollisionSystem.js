@@ -1,9 +1,19 @@
+import { distanceToSegment } from "./LineOfSight.js";
+
 function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
 function touching(a, b) {
   return distance(a, b) < a.radius + b.radius;
+}
+
+// Swept test against the segment the projectile covered this frame, so fast
+// rounds can't skip past a target between two sampled positions.
+function projectileHits(projectile, zombie) {
+  const from = { x: projectile.prevX, y: projectile.prevY };
+  const to = { x: projectile.x, y: projectile.y };
+  return distanceToSegment(zombie, from, to) < projectile.radius + zombie.radius;
 }
 
 function applyProjectileHit(projectile, zombie, zombies, deadZombieIds) {
@@ -37,8 +47,15 @@ export function resolveCollisions({ player, objective, zombies, projectiles, tur
   for (const projectile of projectiles) {
     for (const zombie of zombies) {
       if (deadZombieIds.has(zombie.id) || deadProjectileIds.has(projectile.id)) continue;
-      if (touching(projectile, zombie)) {
-        applyProjectileHit(projectile, zombie, zombies, deadZombieIds);
+      if (projectile.hitZombieIds.has(zombie.id)) continue;
+      if (!projectileHits(projectile, zombie)) continue;
+
+      applyProjectileHit(projectile, zombie, zombies, deadZombieIds);
+      projectile.hitZombieIds.add(zombie.id);
+
+      // A piercing round keeps travelling until it has passed through its
+      // pierce budget, so one sniper shot can line up several zombies.
+      if (projectile.hitZombieIds.size > projectile.pierce) {
         deadProjectileIds.add(projectile.id);
       }
     }

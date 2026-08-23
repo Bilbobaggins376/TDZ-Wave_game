@@ -1,5 +1,5 @@
 // Shortest distance from point p to the segment ab.
-function distanceToSegment(p, a, b) {
+export function distanceToSegment(p, a, b) {
   const abx = b.x - a.x;
   const aby = b.y - a.y;
   const lengthSq = abx * abx + aby * aby;

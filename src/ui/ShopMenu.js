@@ -1,14 +1,14 @@
-import { WEAPONS } from "../data/weapons.js";
-import { upgradesAvailableAtWave } from "../data/upgrades.js";
+import { purchasableWeapons } from "../data/weapons.js";
+import { upgradesAvailableTo } from "../data/upgrades.js";
 
 const ROW_HEIGHT = 30;
 const COLUMN_GAP = 22;
 const PANEL_MARGIN = 48;
 
 const CATEGORY_TITLES = {
-  weapon: "Weapons",
+  weapon: "Buy Weapons",
+  weapon_upgrade: "Weapon Upgrades",
   player: "Player",
-  turret: "Turrets",
   objective: "Objective",
 };
 
@@ -23,46 +23,51 @@ export function buildShopLayout(ctx, { wave, player, upgrades }) {
 
   const columns = [
     { key: "weapon", items: weaponRows(player) },
-    { key: "player", items: upgradeRows(upgrades, "player", wave) },
-    { key: "turret", items: upgradeRows(upgrades, "turret", wave) },
-    { key: "objective", items: upgradeRows(upgrades, "objective", wave) },
+    { key: "weapon_upgrade", items: upgradeRows(upgrades, "weapon_upgrade", player) },
+    { key: "player", items: upgradeRows(upgrades, "player", player) },
+    { key: "objective", items: upgradeRows(upgrades, "objective", player) },
   ];
 
   const columnW = (panelW - COLUMN_GAP * (columns.length + 1)) / columns.length;
   const rows = [];
 
+  // Owning every gun makes the upgrade column tall, so rows shrink to fit
+  // rather than spilling off the panel.
+  const firstRowY = panelY + 96;
+  const available = panelY + panelH - firstRowY - COLUMN_GAP;
+  const tallest = Math.max(1, ...columns.map((c) => c.items.length));
+  const rowHeight = Math.max(20, Math.min(ROW_HEIGHT, available / tallest));
+
   columns.forEach((column, index) => {
     const x = panelX + COLUMN_GAP + index * (columnW + COLUMN_GAP);
-    let y = panelY + 96;
+    let y = firstRowY;
     column.x = x;
     column.width = columnW;
-    column.headerY = y - 14;
+    column.headerY = firstRowY - 14;
 
     for (const item of column.items) {
-      rows.push({ ...item, x, y, width: columnW, height: ROW_HEIGHT - 4 });
-      y += ROW_HEIGHT;
+      rows.push({ ...item, x, y, width: columnW, height: rowHeight - 4 });
+      y += rowHeight;
     }
   });
 
-  return { panelX, panelY, panelW, panelH, columns, rows };
+  return { panelX, panelY, panelW, panelH, columns, rows, rowHeight };
 }
 
 function weaponRows(player) {
-  return Object.values(WEAPONS)
-    .filter((w) => w.cost > 0)
-    .map((weapon) => ({
-      kind: "weapon",
-      id: weapon.id,
-      weapon,
-      label: weapon.label,
-      detail: `${weapon.damage}dmg x${weapon.pellets} · ${weapon.automatic ? "auto" : "click"}`,
-      owned: player.ownsWeapon(weapon.id),
-      cost: weapon.cost,
-    }));
+  return purchasableWeapons().map((weapon) => ({
+    kind: "weapon",
+    id: weapon.id,
+    weapon,
+    label: weapon.label,
+    detail: `${weapon.damage}dmg${weapon.pellets > 1 ? ` x${weapon.pellets}` : ""} · ${weapon.fireRate}/s · mag ${weapon.magazine}${weapon.pierce ? " · pierce" : ""}`,
+    owned: player.ownsWeapon(weapon.id),
+    cost: weapon.cost,
+  }));
 }
 
-function upgradeRows(upgrades, category, wave) {
-  return upgradesAvailableAtWave(wave)
+function upgradeRows(upgrades, category, player) {
+  return upgradesAvailableTo(player)
     .filter((u) => u.category === category)
     .map((upgrade) => ({
       kind: "upgrade",
@@ -152,10 +157,16 @@ function drawRow(ctx, row, { currency, hovered }) {
   ctx.font = "14px sans-serif";
   ctx.fillText(row.label, row.x + 8, row.y + 17);
 
-  ctx.fillStyle = unavailable ? "#334155" : "#64748b";
-  ctx.font = "11px sans-serif";
-  const tierText = row.kind === "upgrade" && Number.isFinite(row.maxTier) ? `  (${row.tier}/${row.maxTier})` : "";
-  ctx.fillText(row.detail + tierText, row.x + 8, row.y + 30);
+  if (row.height >= 26) {
+    ctx.fillStyle = unavailable ? "#334155" : "#64748b";
+    ctx.font = "11px sans-serif";
+    const tierText = row.kind === "upgrade" && Number.isFinite(row.maxTier) ? `  (${row.tier}/${row.maxTier})` : "";
+    ctx.fillText(row.detail + tierText, row.x + 8, row.y + 30);
+  } else if (row.kind === "upgrade" && Number.isFinite(row.maxTier)) {
+    ctx.fillStyle = unavailable ? "#334155" : "#64748b";
+    ctx.font = "11px sans-serif";
+    ctx.fillText(`${row.tier}/${row.maxTier}`, row.x + 8 + ctx.measureText(row.label).width + 42, row.y + 16);
+  }
 
   ctx.textAlign = "right";
   if (row.owned) {

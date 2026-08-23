@@ -1,7 +1,7 @@
-import { TURRET_TYPES } from "./turretTypes.js";
+import { WEAPONS } from "./weapons.js";
 
-// Cost grows per tier so later ranks compete with buying a new weapon or
-// another turret rather than being an automatic purchase.
+// Cost grows per tier so later ranks compete with buying a new weapon rather
+// than being an automatic purchase.
 function tieredCost(base, tier) {
   return Math.round(base * Math.pow(1.6, tier));
 }
@@ -26,9 +26,9 @@ const PLAYER_UPGRADES = [
   {
     id: "player_damage",
     category: "player",
-    label: "Weapon Damage",
-    detail: "+15% weapon damage",
-    baseCost: 100,
+    label: "All Weapon Damage",
+    detail: "+15% damage, every gun",
+    baseCost: 110,
     maxTier: 5,
   },
   {
@@ -69,38 +69,48 @@ const OBJECTIVE_UPGRADES = [
   },
 ];
 
-// §6: turret upgrades are per-turret-type, so each unlocked type contributes
-// its own set rather than one global buff.
-function turretUpgradesFor(type) {
+// Per-gun upgrades, mirroring how turret levels work in Build Mode. Only
+// weapons the player actually owns are offered.
+function weaponUpgradesFor(weapon) {
   return [
     {
-      id: `turret_${type.id}_damage`,
-      category: "turret",
-      turretTypeId: type.id,
+      id: `weapon_${weapon.id}_damage`,
+      category: "weapon_upgrade",
+      weaponId: weapon.id,
       stat: "damage",
-      label: `${type.label} Damage`,
-      detail: "+20% damage",
-      baseCost: 80,
+      label: `${weapon.label} Damage`,
+      detail: "+18% damage",
+      baseCost: 90,
       maxTier: 4,
     },
     {
-      id: `turret_${type.id}_range`,
-      category: "turret",
-      turretTypeId: type.id,
-      stat: "range",
-      label: `${type.label} Range`,
-      detail: "+12% range",
-      baseCost: 70,
+      id: `weapon_${weapon.id}_firerate`,
+      category: "weapon_upgrade",
+      weaponId: weapon.id,
+      stat: "fireRate",
+      label: `${weapon.label} Fire Rate`,
+      detail: "+15% fire rate",
+      baseCost: 100,
       maxTier: 3,
     },
     {
-      id: `turret_${type.id}_firerate`,
-      category: "turret",
-      turretTypeId: type.id,
-      stat: "fireRate",
-      label: `${type.label} Fire Rate`,
-      detail: "+18% fire rate",
-      baseCost: 90,
+      id: `weapon_${weapon.id}_reload`,
+      category: "weapon_upgrade",
+      weaponId: weapon.id,
+      stat: "reload",
+      label: `${weapon.label} Reload`,
+      detail: "-15% reload time",
+      baseCost: 80,
+      maxTier: 3,
+    },
+    {
+      id: `weapon_${weapon.id}_magazine`,
+      category: "weapon_upgrade",
+      weaponId: weapon.id,
+      stat: "magazine",
+      label: `${weapon.label} Magazine`,
+      detail: "+30% magazine",
+      baseCost: 85,
       maxTier: 3,
     },
   ];
@@ -109,18 +119,16 @@ function turretUpgradesFor(type) {
 export const ALL_UPGRADES = [
   ...PLAYER_UPGRADES,
   ...OBJECTIVE_UPGRADES,
-  ...Object.values(TURRET_TYPES).flatMap(turretUpgradesFor),
+  ...Object.values(WEAPONS).flatMap(weaponUpgradesFor),
 ];
 
 export function upgradeCost(upgrade, currentTier) {
   return upgrade.flatCost ? upgrade.baseCost : tieredCost(upgrade.baseCost, currentTier);
 }
 
-// Turret upgrades only appear once their type is unlocked, matching the
-// turret picker in Build Mode.
-export function upgradesAvailableAtWave(wave) {
+export function upgradesAvailableTo(player) {
   return ALL_UPGRADES.filter((u) => {
-    if (u.category !== "turret") return true;
-    return wave >= TURRET_TYPES[u.turretTypeId].unlockWave;
+    if (u.category !== "weapon_upgrade") return true;
+    return player.ownsWeapon(u.weaponId);
   });
 }

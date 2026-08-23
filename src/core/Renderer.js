@@ -6,15 +6,17 @@ export class Renderer {
     this.canvas = canvas;
   }
 
-  render({ player, objective, zombies, projectiles, turrets, threatenedTurretIds, buildPreview, detonationFlash, gameOver, victory }) {
+  render({ player, objective, zombies, projectiles, turrets, threatenedTurretIds, buildPreview, buildRadiusOwner, hoveredTurret, detonationFlash, gameOver, victory }) {
     const { ctx, canvas } = this;
     ctx.fillStyle = "#111";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    if (buildPreview) this.drawBuildRadius(player);
+    if (buildRadiusOwner) this.drawBuildRadius(buildRadiusOwner);
 
     this.drawObjective(objective);
-    for (const turret of turrets) this.drawTurret(turret, threatenedTurretIds.has(turret.id));
+    for (const turret of turrets) {
+      this.drawTurret(turret, threatenedTurretIds.has(turret.id), hoveredTurret?.id === turret.id);
+    }
     for (const zombie of zombies) this.drawZombie(zombie);
     for (const projectile of projectiles) this.drawProjectile(projectile);
     this.drawPlayer(player);
@@ -69,16 +71,35 @@ export class Renderer {
     }
   }
 
-  drawTurret(turret, threatened) {
+  drawTurret(turret, threatened, hovered) {
     const { ctx } = this;
+
+    if (hovered) {
+      ctx.save();
+      ctx.strokeStyle = "rgba(56, 189, 248, 0.4)";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.arc(turret.x, turret.y, turret.effectiveStats().range, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
     ctx.fillStyle = turret.type.color;
     ctx.beginPath();
     ctx.arc(turret.x, turret.y, turret.radius, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(15, 23, 42, 0.8)";
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = hovered ? "#38bdf8" : "rgba(15, 23, 42, 0.8)";
+    ctx.lineWidth = hovered ? 3 : 2;
     ctx.stroke();
+
+    if (turret.level > 1) {
+      ctx.fillStyle = "#0f172a";
+      ctx.font = "bold 11px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(String(turret.level), turret.x, turret.y + 4);
+      ctx.textAlign = "left";
+    }
 
     // §10.1: HP bar only appears once the turret is actually taking fire.
     if (threatened || turret.hp < turret.maxHp) {

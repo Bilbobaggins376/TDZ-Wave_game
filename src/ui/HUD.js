@@ -13,6 +13,10 @@ export function drawHUD(ctx, {
   buildError,
   boss,
   phaseLabel,
+  ammo,
+  magazine,
+  reloadProgress,
+  hoveredTurret,
 }) {
   ctx.save();
   ctx.textAlign = "left";
@@ -31,7 +35,7 @@ export function drawHUD(ctx, {
   // §10: the equipped-weapon indicator is replaced by the turret picker
   // while Build Mode is active, never shown alongside it.
   if (buildMode) {
-    drawBuildBar(ctx, { selectedTurretType, availableTurretTypes, currency });
+    drawBuildBar(ctx, { selectedTurretType, availableTurretTypes, currency, hoveredTurret });
   } else {
     let y = 104;
     ownedWeaponIds.forEach((id, index) => {
@@ -41,9 +45,11 @@ export function drawHUD(ctx, {
       ctx.fillText(`${equipped ? "▶" : " "} [${index + 1}] ${WEAPONS[id].label}`, 16, y);
       y += 20;
     });
+
+    drawAmmo(ctx, { ammo, magazine, reloadProgress }, y + 8);
     ctx.fillStyle = "#64748b";
     ctx.font = "13px sans-serif";
-    ctx.fillText("B — build mode", 16, y + 4);
+    ctx.fillText("B — build mode · R — reload", 16, y + 50);
   }
 
   if (boss) drawBossBar(ctx, boss, phaseLabel);
@@ -56,6 +62,27 @@ export function drawHUD(ctx, {
   }
 
   ctx.restore();
+}
+
+function drawAmmo(ctx, { ammo, magazine, reloadProgress }, y) {
+  if (reloadProgress !== null) {
+    ctx.fillStyle = "#fbbf24";
+    ctx.font = "bold 16px sans-serif";
+    ctx.fillText("RELOADING", 16, y + 14);
+
+    ctx.fillStyle = "#1f2937";
+    ctx.fillRect(16, y + 20, 110, 6);
+    ctx.fillStyle = "#fbbf24";
+    ctx.fillRect(16, y + 20, 110 * reloadProgress, 6);
+    return;
+  }
+
+  ctx.fillStyle = ammo === 0 ? "#f87171" : "#e5e7eb";
+  ctx.font = "bold 18px sans-serif";
+  ctx.fillText(`${ammo}`, 16, y + 14);
+  ctx.fillStyle = "#64748b";
+  ctx.font = "14px sans-serif";
+  ctx.fillText(`/ ${magazine}`, 16 + ctx.measureText(`${ammo}`).width + 22, y + 14);
 }
 
 function drawBossBar(ctx, boss, phaseLabel) {
@@ -84,10 +111,23 @@ function drawBossBar(ctx, boss, phaseLabel) {
   ctx.textAlign = "left";
 }
 
-function drawBuildBar(ctx, { selectedTurretType, availableTurretTypes, currency }) {
+function drawBuildBar(ctx, { selectedTurretType, availableTurretTypes, currency, hoveredTurret }) {
   ctx.fillStyle = "#38bdf8";
   ctx.font = "15px sans-serif";
-  ctx.fillText("BUILD MODE — click to place, right-click/Esc to exit", 16, 104);
+  ctx.fillText("BUILD MODE — click empty ground to place, a turret to upgrade", 16, 104);
+
+  if (hoveredTurret) {
+    const cost = hoveredTurret.nextUpgradeCost();
+    const affordable = currency >= cost;
+    ctx.fillStyle = affordable ? "#38bdf8" : "#7f1d1d";
+    ctx.font = "bold 14px sans-serif";
+    ctx.fillText(
+      `${hoveredTurret.type.label} Lv.${hoveredTurret.level} → Lv.${hoveredTurret.level + 1}   $${cost}`,
+      16,
+      124
+    );
+    return;
+  }
 
   let y = 128;
   availableTurretTypes.forEach((type, index) => {

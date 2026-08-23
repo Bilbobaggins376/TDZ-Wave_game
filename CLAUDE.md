@@ -27,10 +27,13 @@ threatened turret is far away.
 
 The between-waves shop is in and is a true hard pause (§6/§9): clearing a
 wave opens it, nothing simulates while it's open, and **Space** starts the
-next wave. It sells weapons (Sidearm/Shotgun/Rifle — the Shotgun is
-non-automatic, so it exercises the `automatic` click-per-shot rule) and
-tiered upgrades across player, per-turret-type, and objective categories.
-Clearing wave 25 now wins the run.
+next wave. It sells the five weapons (Pistol/Shotgun/AR/Sniper/Minigun),
+per-gun upgrades for weapons you own, and player/objective upgrades.
+Clearing wave 25 wins the run.
+
+All weapons have magazines and reload — automatically when empty, or with
+**R**. Turret upgrades live in **Build Mode**, not the shop: click a placed
+turret to level it up, click empty ground to place a new one.
 
 All five bosses are in, one per boss wave, each with the signature mechanic
 from §9.1 — Lurcher (telegraphed slam), Detonator (chain detonation through

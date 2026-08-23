@@ -15,12 +15,44 @@ export class Turret {
     this.isStructure = true;
   }
 
-  effectiveStats(mods) {
+  // Turrets are upgraded per instance in Build Mode, so a well-placed turret
+  // can be invested in rather than buffing every turret of that type at once.
+  static levelMultipliers(level) {
+    const steps = level - 1;
     return {
-      damage: this.type.damage * mods.damage,
-      range: this.type.range * mods.range,
-      fireRate: this.type.fireRate * mods.fireRate,
-      dotDps: (this.type.dotDps ?? 0) * mods.damage,
+      damage: Math.pow(1.25, steps),
+      range: Math.pow(1.08, steps),
+      fireRate: Math.pow(1.12, steps),
+      maxHp: Math.pow(1.2, steps),
+    };
+  }
+
+  static upgradeCost(type, level) {
+    return Math.round(type.cost * 0.6 * Math.pow(1.55, level - 1));
+  }
+
+  nextUpgradeCost() {
+    return Turret.upgradeCost(this.type, this.level);
+  }
+
+  upgrade() {
+    const before = Turret.levelMultipliers(this.level).maxHp;
+    this.level += 1;
+    const after = Turret.levelMultipliers(this.level).maxHp;
+
+    const healthRatio = this.hp / this.maxHp;
+    this.maxHp = Math.round(this.type.maxHp * after);
+    this.hp = Math.max(this.hp, Math.round(this.maxHp * healthRatio));
+    return after / before;
+  }
+
+  effectiveStats() {
+    const mult = Turret.levelMultipliers(this.level);
+    return {
+      damage: this.type.damage * mult.damage,
+      range: this.type.range * mult.range,
+      fireRate: this.type.fireRate * mult.fireRate,
+      dotDps: (this.type.dotDps ?? 0) * mult.damage,
     };
   }
 
@@ -51,8 +83,8 @@ export class Turret {
     }
   }
 
-  update(dt, zombies, spawnProjectile, mods) {
-    const stats = this.effectiveStats(mods);
+  update(dt, zombies, spawnProjectile) {
+    const stats = this.effectiveStats();
 
     if (this.type.effect === "dot") {
       this.applyAura(zombies, stats);

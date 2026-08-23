@@ -86,9 +86,20 @@ and weigh feature changes against whether they strengthen or dilute them.
 
 - Player carries one equipped weapon at a time, switchable from an inventory
   of unlocked/purchased weapons.
-- Each weapon has: damage, fire rate, range, ammo/reload behavior (if any),
-  a purchase cost, and an `automatic` flag (hold-to-fire vs. click-per-shot
-  — see §3).
+- Each weapon has: damage, fire rate, magazine size, reload time, pellet
+  count and spread, pierce count, a purchase cost, and an `automatic` flag
+  (hold-to-fire vs. click-per-shot — see §3).
+- **Every weapon carries a magazine and reloads.** Firing with an empty
+  magazine starts a reload automatically; **R** reloads on demand. Firing is
+  blocked while reloading, switching weapons cancels an in-progress reload,
+  and ammo is tracked per weapon so switching away and back doesn't refill.
+- Starter roster: **Pistol** (free, automatic, weak but reliable),
+  **Shotgun** (8 pellets, click-per-shot, short range), **Assault Rifle**
+  (automatic all-rounder), **Sniper** (very high damage, low fire rate,
+  pierces up to 3 zombies), **Minigun** (very high fire rate, huge magazine,
+  long reload).
+- **Weapons are upgraded in the shop** (§6), per gun: damage, fire rate,
+  reload speed, and magazine size. Only owned weapons are offered.
 - Starting weapon is available for free at wave 1.
 - Weapons are bought with currency (see §7) — no fixed unlock progression.
 
@@ -115,9 +126,16 @@ and weigh feature changes against whether they strengthen or dilute them.
 
   Unlock order is deliberately Cannon → Frost → Flame → Machine Gun, not the
   order the types are introduced above.
-- Each turret type has its own currency cost, and its own damage/range/
-  fire-rate stats, upgradable independently of player weapons and of other
-  turret types.
+- Each turret type has its own currency cost and its own damage/range/
+  fire-rate stats.
+- **Turrets are upgraded per placed instance, inside Build Mode** — clicking
+  an existing turret levels it up (raising damage, range, fire rate, and max
+  HP together) for an escalating cost, while clicking empty ground places a
+  new one. This replaces the earlier per-turret-*type* upgrades that lived in
+  the shop: investing in a well-placed turret is a more interesting decision
+  than buffing every turret of that type at once, and it reinforces pillar 1
+  (§1.1) by making specific positions worth defending. The shop keeps only
+  **Turret Capacity**, since that is a player stat rather than a turret one.
 - Number of simultaneously placed turrets is capped; the cap itself is
   upgradable. The cap applies across all turret types combined (no separate
   per-type cap, unless that changes).
@@ -156,9 +174,12 @@ Two constraints follow from this and should hold as stats get tuned:
 Purchasable with currency, available only between waves — the shop is a hard
 pause (see §9). Categories:
 
-- **Player upgrades**: move speed, max HP, weapon damage multiplier, weapon
-  swap speed.
-- **Turret/trap upgrades**: damage, range, fire rate, per-turret-type.
+- **Player upgrades**: move speed, max HP, a global weapon-damage multiplier,
+  turret capacity.
+- **Per-weapon upgrades**: damage, fire rate, reload speed, magazine size,
+  offered only for weapons the player owns (§4).
+- **Turret upgrades are _not_ in the shop** — they happen per placed turret
+  inside Build Mode (§5).
 - **Objective upgrades**: max HP, repair (restore HP), passive regen (if
   adopted), damage reduction.
 - Upgrades persist for the remainder of the run; no separate meta-progression

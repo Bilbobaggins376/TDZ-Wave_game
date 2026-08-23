@@ -103,12 +103,7 @@ export class Game {
       else zombie.update(dt, world);
     }
     for (const turret of this.turrets) {
-      turret.update(
-        dt,
-        this.zombies,
-        (t, dx, dy, damage) => this.fireTurret(t, dx, dy, damage),
-        this.upgrades.modsFor(turret.type.id)
-      );
+      turret.update(dt, this.zombies, (t, dx, dy, damage) => this.fireTurret(t, dx, dy, damage));
     }
     this.updateProjectiles(dt);
 
@@ -214,18 +209,53 @@ export class Game {
         const picked = available[numberKey - 1];
         if (picked) this.player.selectedTurretTypeId = picked.id;
       }
-      if (this.input.mouseClickedThisFrame) this.tryPlaceTurret();
+      if (this.input.mouseClickedThisFrame) this.handleBuildClick();
       return;
     }
 
     if (numberKey) this.player.equipSlot(numberKey);
 
+    this.player.updateReload(dt, this.upgrades);
+    if (this.input.wasKeyPressed("r")) this.player.startReload(this.upgrades);
+
     this.player.fireCooldown -= dt;
     const wantsToFire = this.player.weapon.automatic ? this.input.mouseDown : this.input.mouseClickedThisFrame;
-    if (wantsToFire && this.player.fireCooldown <= 0) {
-      this.fireWeapon();
-      this.player.fireCooldown = 1 / this.player.weapon.fireRate;
+    if (!wantsToFire || this.player.fireCooldown > 0 || this.player.isReloading()) return;
+
+    if (this.player.currentAmmo() <= 0) {
+      this.player.startReload(this.upgrades);
+      return;
     }
+
+    this.fireWeapon();
+    this.player.consumeAmmo();
+    this.player.fireCooldown = 1 / this.upgrades.fireRateFor(this.player.weapon.id);
+  }
+
+  // In Build Mode a click either upgrades the turret under the cursor or
+  // places a new one, so the build menu owns turret progression entirely.
+  handleBuildClick() {
+    const existing = this.turretAt(this.input.mouseX, this.input.mouseY);
+    if (existing) {
+      this.tryUpgradeTurret(existing);
+      return;
+    }
+    this.tryPlaceTurret();
+  }
+
+  turretAt(x, y) {
+    return this.turrets.find((t) => Math.hypot(x - t.x, y - t.y) <= t.radius + 4) ?? null;
+  }
+
+  tryUpgradeTurret(turret) {
+    const cost = turret.nextUpgradeCost();
+    if (!this.economy.canAfford(cost)) {
+      this.lastBuildError = `Upgrade needs $${cost}`;
+      this.buildErrorTimer = 1.5;
+      return;
+    }
+    this.economy.spend(cost);
+    turret.upgrade();
   }
 
   selectedTurretType() {
@@ -285,12 +315,18 @@ export class Game {
     if (dist < 0.001) return;
 
     const weapon = this.player.weapon;
-    const damage = weapon.damage * this.upgrades.weaponDamageMultiplier;
+    const damage = this.upgrades.damageFor(weapon.id);
     const baseAngle = Math.atan2(dy, dx);
 
     for (let i = 0; i < weapon.pellets; i++) {
-      const offset = weapon.pellets === 1 ? 0 : (i / (weapon.pellets - 1) - 0.5) * weapon.spread;
+      // Multi-pellet weapons fan evenly across the spread; single-shot ones
+      // get a small random deviation so sustained fire isn't laser-accurate.
+      const offset =
+        weapon.pellets > 1
+          ? (i / (weapon.pellets - 1) - 0.5) * weapon.spread
+          : (Math.random() - 0.5) * weapon.spread;
       const angle = baseAngle + offset;
+
       this.projectiles.push(
         new Projectile(
           this.player.x,
@@ -298,7 +334,8 @@ export class Game {
           Math.cos(angle),
           Math.sin(angle),
           weapon.projectileSpeed,
-          damage
+          damage,
+          { pierce: weapon.pierce, radius: weapon.pierce > 0 ? 5 : 4 }
         )
       );
     }
@@ -386,14 +423,19 @@ export class Game {
       detonationFlash: this.detonationFlash,
       gameOver: this.state === "gameover",
       victory: this.state === "victory",
-      buildPreview: this.player.buildMode
-        ? {
-            x: this.input.mouseX,
-            y: this.input.mouseY,
-            type: this.selectedTurretType(),
-            blockReason: this.placementBlockReason(this.input.mouseX, this.input.mouseY),
-          }
-        : null,
+      // Hovering an existing turret means the click will upgrade it, so the
+      // placement ghost would be misleading there.
+      buildPreview:
+        this.player.buildMode && !this.turretAt(this.input.mouseX, this.input.mouseY)
+          ? {
+              x: this.input.mouseX,
+              y: this.input.mouseY,
+              type: this.selectedTurretType(),
+              blockReason: this.placementBlockReason(this.input.mouseX, this.input.mouseY),
+            }
+          : null,
+      buildRadiusOwner: this.player.buildMode ? this.player : null,
+      hoveredTurret: this.player.buildMode ? this.turretAt(this.input.mouseX, this.input.mouseY) : null,
     });
 
     if (this.state === "intermission") {
@@ -414,6 +456,12 @@ export class Game {
       buildError: this.buildErrorTimer > 0 ? this.lastBuildError : null,
       boss: this.zombies.find((z) => z.isBossEntity) ?? null,
       phaseLabel: this.phaseLabelTimer > 0 ? this.phaseLabel : null,
+      ammo: this.player.currentAmmo(),
+      magazine: this.upgrades.magazineFor(this.player.weapon.id),
+      reloadProgress: this.player.isReloading()
+        ? 1 - this.player.reloadRemaining / this.upgrades.reloadMsFor(this.player.weapon.id)
+        : null,
+      hoveredTurret: this.player.buildMode ? this.turretAt(this.input.mouseX, this.input.mouseY) : null,
     });
   }
 
