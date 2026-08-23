@@ -4,12 +4,37 @@ A tower-defense zombie wave-survival game built for the web (JS/TS + HTML5 Canva
 
 ## Status
 
-First playable slice: WASD movement, mouse-aim + click-to-fire (one starting
-weapon), a Shambler zombie type that walks toward the objective and does
-periodic contact damage, an objective + player with HP bars, and a basic
-endless wave loop (spawn count grows per wave, zombies get tougher). No
-shop/currency/turrets/Build Mode/other zombie types/bosses/persistence yet —
-those are designed in REQUIREMENTS.md and the architecture doc but not built.
+Playable: WASD movement, mouse-aim + click-to-fire (one starting weapon), an
+objective + player with HP bars, and an endless wave loop.
+
+All three non-boss zombie types are implemented with their §8 priority
+targeting and §8.1 introduction waves — Shambler (objective-priority, wave
+1), Stalker (player-priority within aggro range, wave 7), Breaker
+(turret-priority, wave 12). Breaker currently always falls back to the
+objective because no turrets exist yet; that fallback is the spec'd
+behavior, not a stub.
+
+Turrets and Build Mode are in: **B** toggles Build Mode, number keys pick a
+turret type, click places it inside the build radius, right-click/Esc exits.
+All four types work with their §5.1 counter-design behaviors (Cannon splash,
+Frost slow, Flame damage-over-time aura, Machine Gun single-target) and
+unlock-wave gating. Currency exists at the minimum needed to make placement
+cost something — kills pay out, deaths cost `10 × wave`.
+
+The §10.1 threat cue is implemented: turrets targeted by a Breaker get a
+dashed ring plus an HP bar, and a directional arrow near the player when the
+threatened turret is far away.
+
+The between-waves shop is in and is a true hard pause (§6/§9): clearing a
+wave opens it, nothing simulates while it's open, and **Space** starts the
+next wave. It sells weapons (Sidearm/Shotgun/Rifle — the Shotgun is
+non-automatic, so it exercises the `automatic` click-per-shot rule) and
+tiered upgrades across player, per-turret-type, and objective categories.
+Clearing wave 25 now wins the run.
+
+No bosses or persistence yet — those are designed in REQUIREMENTS.md and the
+architecture doc but not built. **Wave 25 currently ends the run with no
+boss fight**, since bosses aren't implemented.
 
 ## Tech stack
 
@@ -30,10 +55,16 @@ decisions change or open questions get resolved.
 - [src/core/Game.js](src/core/Game.js) — frame loop, per-frame system order, reset/game-over/restart
 - [src/core/InputManager.js](src/core/InputManager.js) — keyboard/mouse state, edge-triggered click detection
 - [src/core/Renderer.js](src/core/Renderer.js) — draws entities + HP bars + game-over overlay
-- [src/entities/](src/entities) — `Player.js`, `Objective.js`, `Zombie.js`, `Projectile.js`
-- [src/systems/WaveManager.js](src/systems/WaveManager.js) — spawn timing/count per wave (Shambler only so far)
-- [src/systems/CollisionSystem.js](src/systems/CollisionSystem.js) — projectile↔zombie, zombie↔objective, zombie↔player
-- [src/data/zombieTypes.js](src/data/zombieTypes.js) — zombie type stats (just `shambler` right now)
+- [src/entities/](src/entities) — `Player.js`, `Objective.js`, `Zombie.js`, `Turret.js`, `Projectile.js`
+- [src/systems/Economy.js](src/systems/Economy.js) — currency balance, kill payouts, wave-scaled death penalty
+- [src/systems/UpgradeSystem.js](src/systems/UpgradeSystem.js) — purchased tiers, stat application, per-turret-type modifiers
+- [src/ui/ShopMenu.js](src/ui/ShopMenu.js) — intermission panel layout, hit-testing, and rendering
+- [src/data/turretTypes.js](src/data/turretTypes.js) — per-type stats, costs, and unlock-wave gating
+- [src/data/weapons.js](src/data/weapons.js) — weapon stats incl. the `automatic` flag and pellet/spread
+- [src/data/upgrades.js](src/data/upgrades.js) — upgrade definitions, tier costs, wave gating
+- [src/systems/WaveManager.js](src/systems/WaveManager.js) — spawn timing/count per wave, weighted type selection gated on introduction waves
+- [src/systems/CollisionSystem.js](src/systems/CollisionSystem.js) — projectile↔zombie, zombie↔objective, zombie↔player, zombie↔turret
+- [src/data/zombieTypes.js](src/data/zombieTypes.js) — per-type stats, HP scaling, and introduction-wave gating
 - [src/ui/HUD.js](src/ui/HUD.js) — wave-number overlay text
 - [src/style.css](src/style.css) — full-window canvas styling
 - [vite.config.js](vite.config.js) — sets `base: './'`; required for the build to work when hosted off the domain root (see Deployment below) — don't remove it

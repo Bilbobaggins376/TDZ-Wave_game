@@ -14,6 +14,38 @@ The play area is a **fixed viewport** — the whole map is sized to the browser
 window and always fully visible. No camera, no scrolling/panning; this is
 true for the entire game, not just an early simplification.
 
+### 1.1 Design pillars — what sets this apart
+
+Competitive research (Aug 2026) across itch.io's tower-defense/zombie tags
+and the wider hybrid genre found the space splits into two camps: pure
+turret-placement games where you never fight directly (Zombie Tower
+Survivor, Wizard Siege TD), and survival shooters with base-building but no
+real turret strategy (Don't Bite Me Bro!, Surrounded). The genuine hybrids —
+Sanctum, Sentry, GROSS — are all first-person, not top-down. The following
+four pillars are the deliberate differentiators; treat them as load-bearing,
+and weigh feature changes against whether they strengthen or dilute them.
+
+1. **The build radius follows the player, not a base.** Nearly every
+   competitor either allows free placement anywhere or restricts building to
+   a static home base. Anchoring it to the player (§5) forces a live
+   tradeoff: push forward to fight, or hold position to keep your build
+   radius over your turrets.
+2. **Enemies hunt different targets.** Genre-standard is "every enemy
+   beelines the same target." Per-type priority targeting (§8) — Stalkers
+   hunt the player, Breakers hunt turrets, Shamblers hunt the objective —
+   means the player-anchored build radius and the enemy AI reinforce each
+   other into one tactical layer rather than two unrelated features. **These
+   first two pillars are the headline; they must be legible to the player,
+   not merely emergent** (see §10's threat cue).
+3. **Turrets counter behaviors, not just hit harder.** Each turret type is
+   designed against a specific enemy behavior (§5.1), so each unlock is a
+   strategy shift rather than a rung on a power ladder.
+4. **A finite, winnable run.** Most of the surveyed field is endless
+   survival. A bounded 25-wave run with a real victory (§11) is a stronger
+   pitch on a browse-and-bail storefront like itch.io, and **"5 bosses, 5
+   different fights"** (§9.1) is a headline feature almost nothing in the
+   surveyed field advertises.
+
 ## 2. Objective
 
 - A fixed structure/point on the map with a visible HP bar.
@@ -94,6 +126,31 @@ true for the entire game, not just an early simplification.
   another DoT source), only one instance of that effect applies at a time —
   the highest-damaging/strongest one. Effects do not stack additively.
 
+### 5.1 Counter-design: each turret answers a behavior
+
+Per pillar 3 (§1.1), turret types are **not** a power ladder where each
+unlock is a strictly better gun. Each is designed to answer a specific enemy
+behavior from §8, so every unlock changes *how* you defend rather than just
+raising your damage numbers:
+
+| Turret | Unlocks | Answers | Why it works |
+|---|---|---|---|
+| **Cannon** | Wave 1 | Shambler packs | Splash punishes the tight clusters that objective-priority zombies naturally form as they converge on one point. |
+| **Frost** | Wave 6 | Stalkers | Slow negates the speed advantage that makes player-hunters hard to escape, buying room to reposition. |
+| **Flame** | Wave 11 | Breakers | Breakers stop and attack a turret rather than moving through. Persistent area DoT placed among your turret cluster punishes exactly that camping. |
+| **Machine Gun** | Wave 16 | Bosses | Sustained single-target DPS is dead weight against hordes but the right answer to one high-HP target — which is why it lands right before the wave-20 and 25 bosses. |
+
+Two constraints follow from this and should hold as stats get tuned:
+
+- **The counter turret unlocks exactly one wave before its target enemy
+  first appears** (§8.1). The player therefore gets one full shop
+  intermission to buy and place the answer before the new threat arrives —
+  the unlock *telegraphs* the problem rather than reacting to it. Two
+  deliberate exceptions are documented in §8.1: Shambler and the bosses.
+- **No turret should be strictly better than an earlier one.** If Machine
+  Gun ends up simply outperforming Cannon against crowds, the counter design
+  has collapsed into a power ladder and the stats need revisiting.
+
 ## 6. Upgrades
 
 Purchasable with currency, available only between waves — the shop is a hard
@@ -113,8 +170,15 @@ pause (see §9). Categories:
   zombies drop more).
 - Player death costs a currency penalty on respawn (see §3): base 10,
   increasing by 10 per wave (`10 × waveNumber`).
-- Currency is spent on weapons, turrets, and upgrades via a shop/menu,
-  available only between waves.
+- Currency is spent on **weapons and upgrades** via the shop/menu, available
+  only between waves (§6).
+- **Turrets are the exception**: they are bought *by placing them* in Build
+  Mode (§3), which works during a wave as well as between waves, and the
+  cost is deducted at placement. Build Mode's spec — movement and aiming
+  stay live, click places instead of firing — only makes sense in-world, so
+  routing turret purchases through the between-waves shop would contradict
+  it. Placement is still refused, with an on-screen reason, when the player
+  can't afford it, is outside the build radius, or is at the turret cap.
 - No other currency sources planned initially (no passive income).
 
 ## 8. Zombies
@@ -123,15 +187,15 @@ Each zombie type has a **priority target** — what it heads for first — rathe
 than every zombie uniformly beelining for the objective. Proposed starter
 roster (editable):
 
-- **Shambler** — Objective-priority. Baseline HP/speed, ignores the player
-  and turrets unless they're directly blocking its path; heads straight for
-  the objective.
-- **Stalker** — Player-priority. Faster, lower HP; actively paths toward and
-  attacks the player. Falls back to Objective-priority behavior if the player
-  is unreachable or out of its aggro range.
-- **Breaker** — Turret-priority. Higher damage against structures; paths
-  toward the nearest placed turret and attacks it. Falls back to
-  Objective-priority behavior if no turrets are currently placed.
+- **Shambler** — *from wave 1.* Objective-priority. Baseline HP/speed,
+  ignores the player and turrets unless they're directly blocking its path;
+  heads straight for the objective.
+- **Stalker** — *from wave 7.* Player-priority. Faster, lower HP; actively
+  paths toward and attacks the player. Falls back to Objective-priority
+  behavior if the player is unreachable or out of its aggro range.
+- **Breaker** — *from wave 12.* Turret-priority. Higher damage against
+  structures; paths toward the nearest placed turret and attacks it. Falls
+  back to Objective-priority behavior if no turrets are currently placed.
 - **Boss** — one per boss wave (see §9). Turret-priority: destroys placed
   turrets first, then falls back to Objective-priority once no turrets
   remain (same fallback rule as Breaker). In addition, every boss has a
@@ -147,13 +211,41 @@ roster (editable):
 All zombies still deal contact damage to the objective if they reach it,
 regardless of type. Zombie stats scale up as waves progress (see §9).
 
+### 8.1 Introduction waves
+
+Each zombie type first appears **one wave after its counter turret unlocks**
+(§5.1), so the player gets exactly one shop intermission to buy and place
+the answer before the threat arrives:
+
+| Type | Counter turret unlocks | First appears |
+|---|---|---|
+| Shambler | Cannon, wave 1 | Wave 1 — *exception, see below* |
+| Stalker | Frost, wave 6 | Wave 7 |
+| Breaker | Flame, wave 11 | Wave 12 |
+| Boss | Machine Gun, wave 16 | Waves 5/10/15/20/25 — *exception, see below* |
+
+Once introduced, a type stays in the spawn pool for every subsequent wave —
+introduction waves add variety, they don't replace earlier types.
+
+Two deliberate exceptions to the one-wave-after rule:
+
+- **Shambler appears on wave 1**, the same wave Cannon unlocks, not wave 2 —
+  it's the baseline enemy, and delaying it would leave wave 1 with nothing
+  to fight.
+- **Bosses follow their own fixed 5/10/15/20/25 cadence** (§9), which is
+  locked and predates this rule. Machine Gun is therefore *not* the answer
+  to the first boss; it's aimed specifically at the wave-20 DPS check and
+  the wave-25 finale (§9.1). The earlier bosses are meant to be beaten with
+  the turret roster available at the time.
+
 ## 9. Wave system
 
 - Waves are discrete: a wave ends only when every entity spawned in it is
   dead — no time limit. A shop/upgrade interval (hard pause, see §6) opens
   before the next wave starts.
-- Difficulty increases with wave number via more zombies per wave and higher
-  zombie HP/damage/speed.
+- Difficulty increases with wave number via more zombies per wave, higher
+  zombie HP/damage/speed, and new zombie types entering the spawn pool at
+  their introduction waves (§8.1).
 - **Boss waves** occur every 5th wave (5, 10, 15, 20, 25). A boss wave
   replaces the normal spawn with a single boss enemy. **All 5 bosses are
   distinct designs** (not one boss reused with scaled stats), with overall
@@ -162,6 +254,34 @@ regardless of type. Zombie stats scale up as waves progress (see §9).
   stats and the specific secondary attack differ per boss — exact per-boss
   kits TBD, see Open Questions.
 - **Max wave is 25 (for now)** — clearing wave 25's boss wins the run.
+
+### 9.1 Boss variety is a headline feature
+
+Per pillar 4 (§1.1), **"5 bosses, 5 different fights"** is a marketing line,
+not just an internal design note — almost nothing in the surveyed field
+advertises boss variety at all. That only holds if each boss genuinely plays
+differently, so the design rule is:
+
+> **Each boss stresses a different one of the player's systems.** A boss
+> that is merely "the last one with bigger numbers" fails this rule and
+> should be redesigned rather than re-tuned.
+
+**Decided.** Each boss's role below is settled design, not a proposal — the
+numbers realizing each role are still to be tuned (§15), but *which system
+each boss stresses* is fixed, and a boss whose stats stop delivering its
+assigned pressure gets re-tuned until it does, rather than reassigned:
+
+| Wave | Stresses | Design |
+|---|---|---|
+| 5 | Learning the pattern | Modest stats; the fight that *teaches* turret-first-then-objective and the secondary attack. Must be survivable by a player who has only Cannon. |
+| 10 | Turret spacing | Large secondary-attack radius, punishing tightly clustered turrets and rewarding spread placement. |
+| 15 | Positioning | High movement speed; punishes the player for straying far from the objective, since it reaches it quickly once turrets fall. |
+| 20 | Sustained DPS | High HP — a damage check that rewards having invested in Machine Gun (unlocked wave 16) and weapon upgrades. |
+| 25 | All of it | Combines the earlier pressures as a finale; the only fight that assumes the player has the full turret roster. |
+
+The shared elements (turret-priority then objective, proximity-plus-line-of-
+sight secondary attack) stay constant across all 5 per §8 — the *variety*
+lives in stats, secondary-attack shape, and which system each pressures.
 
 ## 10. UI / HUD
 
@@ -177,7 +297,30 @@ regardless of type. Zombie stats scale up as waves progress (see §9).
 - Build-radius ring around the player, and a placement preview (ghost
   turret at the cursor, styled valid/invalid) — both drawn **only while
   Build Mode is active** (§3), never during normal play.
+- **Turret-under-threat cue** — see §10.1.
 - Boss-wave indicator/warning before a boss wave starts.
+
+### 10.1 Making the core tension legible
+
+Pillars 1 and 2 (§1.1) only land if the player *feels* the tradeoff. Left
+purely emergent, the failure case is invisible: the player walks off to
+fight, a Breaker eats a turret somewhere behind them, and all they notice is
+that a turret is missing later — a punishment with no readable cause and no
+decision point.
+
+So the turret-vs-player tension must be surfaced directly:
+
+- When a turret-priority enemy (Breaker, or a boss) is actively targeting a
+  placed turret, that turret shows a **threat indicator**, and the turret's
+  HP bar becomes visible while it is under attack.
+- If the threatened turret is far from the player, show a **directional
+  marker** pointing toward it, so the player can choose to respond or
+  deliberately write it off.
+- The cue must be readable at a glance during combat, and must not require
+  the player to be looking at that part of the screen already.
+
+The intent is that abandoning a turret is always a *choice the player made*,
+never something they simply failed to notice.
 
 ## 11. Win / lose conditions
 
@@ -233,7 +376,11 @@ build. This has concrete architectural consequences:
 
 ## 15. Open questions
 
-- The specific stats for each of the 5 distinct bosses — HP, movement speed,
-  and each one's secondary-attack radius/damage/cooldown (wave 5, 10, 15,
-  20, 25) — only the shared turret-priority-then-objective pattern and
-  proximity-plus-line-of-sight secondary attack gate are decided so far.
+- **Numbers only** for the 5 bosses — HP, movement speed, and each one's
+  secondary-attack radius/damage/cooldown (wave 5, 10, 15, 20, 25). The
+  shared pattern (§8) and each boss's assigned role (§9.1) are both locked;
+  what remains is tuning stats until each boss actually delivers its
+  assigned pressure. Tune, don't reassign.
+- Whether the §10.1 threat cue should also fire when the *objective* is
+  under attack, or whether the objective's always-visible HP bar is
+  sufficient signal on its own.

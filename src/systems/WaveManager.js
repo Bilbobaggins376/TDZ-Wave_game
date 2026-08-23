@@ -1,8 +1,9 @@
 import { Zombie } from "../entities/Zombie.js";
-import { ZOMBIE_TYPES } from "../data/zombieTypes.js";
+import { typesAvailableAtWave } from "../data/zombieTypes.js";
 
 const SPAWN_INTERVAL = 0.5;
-const INTERMISSION = 1.5;
+
+export const MAX_WAVE = 25;
 
 export class WaveManager {
   constructor(canvasWidth, canvasHeight) {
@@ -10,49 +11,60 @@ export class WaveManager {
     this.canvasHeight = canvasHeight;
     this.wave = 1;
     this.spawnTimer = 0;
-    this.intermissionTimer = 0;
-    this.toSpawn = 3 + this.wave * 2;
+    this.toSpawn = this.spawnCountForWave();
   }
 
+  spawnCountForWave() {
+    return 3 + this.wave * 2;
+  }
+
+  isFinalWave() {
+    return this.wave >= MAX_WAVE;
+  }
+
+  // §9: a wave ends only once every entity it spawned is dead. Advancing is
+  // the caller's decision — the shop sits between waves and is a hard pause.
   update(dt, aliveZombieCount) {
     if (this.toSpawn > 0) {
       this.spawnTimer -= dt;
       if (this.spawnTimer <= 0) {
         this.spawnTimer = SPAWN_INTERVAL;
         this.toSpawn -= 1;
-        return [this.makeZombie()];
+        return { spawned: [this.makeZombie()], waveCleared: false };
       }
-      return [];
+      return { spawned: [], waveCleared: false };
     }
 
-    if (aliveZombieCount === 0) {
-      this.intermissionTimer += dt;
-      if (this.intermissionTimer >= INTERMISSION) {
-        this.intermissionTimer = 0;
-        this.wave += 1;
-        this.toSpawn = 3 + this.wave * 2;
-      }
+    return { spawned: [], waveCleared: aliveZombieCount === 0 };
+  }
+
+  advanceWave() {
+    this.wave += 1;
+    this.spawnTimer = 0;
+    this.toSpawn = this.spawnCountForWave();
+  }
+
+  pickType() {
+    const available = typesAvailableAtWave(this.wave);
+    const totalWeight = available.reduce((sum, t) => sum + t.spawnWeight, 0);
+    let roll = Math.random() * totalWeight;
+    for (const type of available) {
+      roll -= type.spawnWeight;
+      if (roll <= 0) return type;
     }
-    return [];
+    return available[available.length - 1];
+  }
+
+  spawnPosition() {
+    const edge = Math.floor(Math.random() * 4);
+    if (edge === 0) return { x: Math.random() * this.canvasWidth, y: -20 };
+    if (edge === 1) return { x: this.canvasWidth + 20, y: Math.random() * this.canvasHeight };
+    if (edge === 2) return { x: Math.random() * this.canvasWidth, y: this.canvasHeight + 20 };
+    return { x: -20, y: Math.random() * this.canvasHeight };
   }
 
   makeZombie() {
-    const edge = Math.floor(Math.random() * 4);
-    let x;
-    let y;
-    if (edge === 0) {
-      x = Math.random() * this.canvasWidth;
-      y = -20;
-    } else if (edge === 1) {
-      x = this.canvasWidth + 20;
-      y = Math.random() * this.canvasHeight;
-    } else if (edge === 2) {
-      x = Math.random() * this.canvasWidth;
-      y = this.canvasHeight + 20;
-    } else {
-      x = -20;
-      y = Math.random() * this.canvasHeight;
-    }
-    return new Zombie(ZOMBIE_TYPES.shambler, x, y, this.wave);
+    const { x, y } = this.spawnPosition();
+    return new Zombie(this.pickType(), x, y, this.wave);
   }
 }

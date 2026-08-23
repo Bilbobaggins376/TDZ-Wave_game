@@ -2,34 +2,69 @@ function distance(a, b) {
   return Math.hypot(a.x - b.x, a.y - b.y);
 }
 
-export function resolveCollisions({ player, objective, zombies, projectiles }) {
-  const deadZombieIds = new Set();
-  const deadProjectileIds = new Set();
+function touching(a, b) {
+  return distance(a, b) < a.radius + b.radius;
+}
 
-  for (const projectile of projectiles) {
-    for (const zombie of zombies) {
-      if (deadZombieIds.has(zombie.id) || deadProjectileIds.has(projectile.id)) continue;
-      if (distance(projectile, zombie) < projectile.radius + zombie.radius) {
-        zombie.hp -= projectile.damage;
-        deadProjectileIds.add(projectile.id);
-        if (zombie.hp <= 0) deadZombieIds.add(zombie.id);
+function applyProjectileHit(projectile, zombie, zombies, deadZombieIds) {
+  zombie.hp -= projectile.damage;
+
+  if (projectile.effect === "slow") {
+    zombie.applyEffect("slow", {
+      strength: projectile.slowFactor,
+      durationMs: projectile.slowDurationMs,
+    });
+  }
+
+  if (projectile.effect === "splash") {
+    for (const other of zombies) {
+      if (other.id === zombie.id || deadZombieIds.has(other.id)) continue;
+      if (distance(projectile, other) <= projectile.splashRadius) {
+        other.hp -= projectile.damage * 0.5;
+        if (other.hp <= 0) deadZombieIds.add(other.id);
       }
     }
   }
 
-  for (const zombie of zombies) {
-    if (deadZombieIds.has(zombie.id)) continue;
+  if (zombie.hp <= 0) deadZombieIds.add(zombie.id);
+}
 
-    if (zombie.contactCooldown <= 0 && distance(zombie, objective) < zombie.radius + objective.radius) {
-      objective.hp = Math.max(0, objective.hp - zombie.type.contactDamage);
-      zombie.contactCooldown = zombie.type.contactIntervalMs;
-    }
+export function resolveCollisions({ player, objective, zombies, projectiles, turrets = [] }) {
+  const deadZombieIds = new Set();
+  const deadProjectileIds = new Set();
+  const deadTurretIds = new Set();
 
-    if (zombie.contactCooldown <= 0 && distance(zombie, player) < zombie.radius + player.radius) {
-      player.hp = Math.max(0, player.hp - zombie.type.contactDamage);
-      zombie.contactCooldown = zombie.type.contactIntervalMs;
+  for (const projectile of projectiles) {
+    for (const zombie of zombies) {
+      if (deadZombieIds.has(zombie.id) || deadProjectileIds.has(projectile.id)) continue;
+      if (touching(projectile, zombie)) {
+        applyProjectileHit(projectile, zombie, zombies, deadZombieIds);
+        deadProjectileIds.add(projectile.id);
+      }
     }
   }
 
-  return { deadZombieIds, deadProjectileIds };
+  // Aura damage (Flame) is applied by the turret itself, so a zombie can die
+  // from a damage-over-time tick with no projectile involved.
+  for (const zombie of zombies) {
+    if (zombie.hp <= 0) deadZombieIds.add(zombie.id);
+  }
+
+  for (const zombie of zombies) {
+    if (deadZombieIds.has(zombie.id) || zombie.contactCooldown > 0) continue;
+
+    // Its chosen target takes priority, but anything it physically runs into
+    // still gets hit — §8: zombies damage the objective on contact whatever
+    // their priority target is, and the player counts as blocking the path.
+    const candidates = [zombie.target, objective, player];
+    const hit = candidates.find((c) => c && c.hp > 0 && touching(zombie, c));
+    if (!hit) continue;
+
+    const reduction = hit.damageReduction ?? 0;
+    hit.hp = Math.max(0, hit.hp - zombie.damageAgainst(hit) * (1 - reduction));
+    zombie.contactCooldown = zombie.type.contactIntervalMs;
+    if (hit.isTurret && hit.hp <= 0) deadTurretIds.add(hit.id);
+  }
+
+  return { deadZombieIds, deadProjectileIds, deadTurretIds };
 }
