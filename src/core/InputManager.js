@@ -8,6 +8,7 @@ export class InputManager {
     this.mouseDown = false;
     this.mouseClickedThisFrame = false;
     this.rightClickedThisFrame = false;
+    this.wheelDelta = 0;
 
     window.addEventListener("keydown", (e) => {
       const key = e.key.toLowerCase();
@@ -33,6 +34,14 @@ export class InputManager {
       if (e.button !== 2) this.mouseDown = false;
     });
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+    canvas.addEventListener(
+      "wheel",
+      (e) => {
+        this.wheelDelta += e.deltaY;
+        e.preventDefault();
+      },
+      { passive: false }
+    );
   }
 
   getMoveVector() {
@@ -66,6 +75,7 @@ export class InputManager {
   endFrame() {
     this.mouseClickedThisFrame = false;
     this.rightClickedThisFrame = false;
+    this.wheelDelta = 0;
     this.keysPressedThisFrame.clear();
   }
 }

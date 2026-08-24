@@ -400,6 +400,16 @@ build. This has concrete architectural consequences:
   reliable.
 - No mobile/touch requirement (see §14) means no itch.io mobile-friendly
   toggle is needed; assume desktop browser + keyboard/mouse.
+- **Embed size**: the canvas fills the iframe, so any size works, but the
+  shop panel is the constraint. At 1024x768 and above every shop row fits at
+  once; below that the shop scrolls (mouse wheel) to keep every row
+  reachable. **Recommended embed: 1280x720.** Do not go below ~550x400,
+  where fewer than half the shop rows are visible per screen.
+- **Keyboard focus**: input is bound to the game's own window, so inside
+  itch.io's iframe the keyboard only responds once the player has clicked
+  the game. This is normal for HTML5 games there, but the itch.io page
+  description should say "click the game first" to avoid players thinking
+  the controls are broken.
 
 ## 14. Out of scope (for now)
 

@@ -47,6 +47,7 @@ export class Game {
     this.buildErrorTimer = 0;
     this.shopMessage = null;
     this.shopLayout = null;
+    this.shopScroll = 0;
     this.phaseLabel = null;
     this.phaseLabelTimer = 0;
     this.detonationFlash = null;
@@ -143,7 +144,13 @@ export class Game {
     if (this.input.wasKeyPressed(" ") || this.input.wasKeyPressed("enter")) {
       this.waveManager.advanceWave();
       this.state = "playing";
+      this.shopScroll = 0;
       return;
+    }
+
+    if (this.input.wheelDelta !== 0) {
+      const max = this.shopLayout ? this.shopLayout.maxScroll : 0;
+      this.shopScroll = Math.max(0, Math.min(this.shopScroll + this.input.wheelDelta * 0.5, max));
     }
 
     if (!this.input.mouseClickedThisFrame) return;
@@ -155,6 +162,7 @@ export class Game {
         wave: this.waveManager.wave,
         player: this.player,
         upgrades: this.upgrades,
+        scroll: this.shopScroll,
       });
     }
 
@@ -471,6 +479,7 @@ export class Game {
       wave: this.waveManager.wave,
       player: this.player,
       upgrades: this.upgrades,
+      scroll: this.shopScroll,
     });
 
     drawShop(this.ctx, this.shopLayout, {

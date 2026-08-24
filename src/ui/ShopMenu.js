@@ -14,7 +14,7 @@ const CATEGORY_TITLES = {
 
 // Builds the flat list of purchasable rows plus their hit-test rectangles.
 // Layout is recomputed each frame so it survives a window resize.
-export function buildShopLayout(ctx, { wave, player, upgrades }) {
+export function buildShopLayout(ctx, { wave, player, upgrades, scroll = 0 }) {
   const canvas = ctx.canvas;
   const panelX = PANEL_MARGIN;
   const panelY = PANEL_MARGIN;
@@ -31,16 +31,22 @@ export function buildShopLayout(ctx, { wave, player, upgrades }) {
   const columnW = (panelW - COLUMN_GAP * (columns.length + 1)) / columns.length;
   const rows = [];
 
-  // Owning every gun makes the upgrade column tall, so rows shrink to fit
-  // rather than spilling off the panel.
+  // Owning every gun makes the upgrade column tall, so rows shrink toward a
+  // legible floor. Below that floor they can't shrink further — small itch.io
+  // embeds (640x480 leaves room for ~13 of 20 rows) scroll instead, so no row
+  // is ever unreachable.
   const firstRowY = panelY + 96;
   const available = panelY + panelH - firstRowY - COLUMN_GAP;
   const tallest = Math.max(1, ...columns.map((c) => c.items.length));
   const rowHeight = Math.max(20, Math.min(ROW_HEIGHT, available / tallest));
 
+  const contentHeight = tallest * rowHeight;
+  const maxScroll = Math.max(0, contentHeight - available);
+  const scrollOffset = Math.max(0, Math.min(scroll, maxScroll));
+
   columns.forEach((column, index) => {
     const x = panelX + COLUMN_GAP + index * (columnW + COLUMN_GAP);
-    let y = firstRowY;
+    let y = firstRowY - scrollOffset;
     column.x = x;
     column.width = columnW;
     column.headerY = firstRowY - 14;
@@ -51,7 +57,21 @@ export function buildShopLayout(ctx, { wave, player, upgrades }) {
     }
   });
 
-  return { panelX, panelY, panelW, panelH, columns, rows, rowHeight };
+  const clipTop = firstRowY - 4;
+  const clipBottom = firstRowY + available;
+  // Hit-testing uses the same list, so a clipped row can't be clicked either.
+  const visibleRows = rows.filter((r) => r.y >= clipTop - rowHeight && r.y + r.height <= clipBottom + 1);
+
+  return {
+    panelX, panelY, panelW, panelH,
+    columns,
+    rows: visibleRows,
+    rowHeight,
+    scrollOffset,
+    maxScroll,
+    clipTop,
+    clipBottom,
+  };
 }
 
 function weaponRows(player) {
@@ -133,8 +153,29 @@ export function drawShop(ctx, layout, { wave, currency, hoveredRow, message, isF
     }
   }
 
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(layout.panelX, layout.clipTop, layout.panelW, layout.clipBottom - layout.clipTop);
+  ctx.clip();
   for (const row of layout.rows) {
     drawRow(ctx, row, { currency, hovered: hoveredRow && hoveredRow.id === row.id });
+  }
+  ctx.restore();
+
+  if (layout.maxScroll > 0) {
+    const trackH = layout.clipBottom - layout.clipTop;
+    const thumbH = Math.max(24, trackH * (trackH / (trackH + layout.maxScroll)));
+    const thumbY = layout.clipTop + (layout.scrollOffset / layout.maxScroll) * (trackH - thumbH);
+    ctx.fillStyle = "rgba(148, 163, 184, 0.18)";
+    ctx.fillRect(layout.panelX + layout.panelW - 8, layout.clipTop, 4, trackH);
+    ctx.fillStyle = "#38bdf8";
+    ctx.fillRect(layout.panelX + layout.panelW - 8, thumbY, 4, thumbH);
+
+    ctx.fillStyle = "#64748b";
+    ctx.font = "11px sans-serif";
+    ctx.textAlign = "right";
+    ctx.fillText("scroll for more", layout.panelX + layout.panelW - 16, layout.clipBottom + 14);
+    ctx.textAlign = "left";
   }
 
   ctx.restore();
